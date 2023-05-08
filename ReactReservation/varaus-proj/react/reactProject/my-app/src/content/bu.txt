@@ -1,0 +1,279 @@
+import React, { useState, useEffect } from "react";
+import "../reservation.css";
+
+const Reserve = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [time, setTime] = useState("");
+  const [selectedDay, setSelectedDay] = useState("");
+  const [boxReserved, setBoxReserved] = useState(false);
+  const [reservations, setReservations] = useState({});
+
+  useEffect(() => {
+    const reservationsData = localStorage.getItem("reservations");
+    if (reservationsData) {
+      setReservations(JSON.parse(reservationsData));
+    }
+  }, []);
+
+  const handleReservation = (e) => {
+    e.preventDefault();
+    if (!selectedDay || !time) {
+      console.error("Please select a day and time.");
+      return;
+    }
+
+    const newReservation = {
+      name,
+      email,
+      day: selectedDay,
+      time,
+    };
+    const newReservations = {
+      ...reservations,
+      [selectedDay]: {
+        ...reservations[selectedDay],
+        [time]: newReservation,
+      },
+    };
+    localStorage.setItem("reservations", JSON.stringify(newReservations));
+    setReservations(newReservations);
+
+    setBoxReserved(true);
+    console.log(
+      `Reservation confirmed for ${selectedDay}, ${time}, ${name}, ${email}`
+    );
+
+    setName("");
+    setEmail("");
+    setTime("");
+    setSelectedDay("");
+  };
+
+  const handleTimeSelection = (time) => {
+    setTime(time);
+  };
+
+  const generateTimeSlots = () => {
+    const timeSlots = [];
+    for (let i = 8; i < 16; i++) {
+      const timeSlot = `${i}:00 - ${i + 1}:00`;
+      const reservedName =
+        reservations[selectedDay] && reservations[selectedDay][timeSlot]
+          ? reservations[selectedDay][timeSlot].name
+          : "";
+      timeSlots.push(
+        <button
+          type="button"
+          key={timeSlot}
+          className={
+            time === timeSlot ? "time-slot selected" : "time-slot"
+          }
+          onClick={() => handleTimeSelection(timeSlot)}
+          disabled={!selectedDay || boxReserved}
+        >
+          {reservedName ? `${timeSlot} (${reservedName})` : timeSlot}
+        </button>
+      );
+    }
+    return timeSlots;
+  };
+
+  const handleDaySelection = (day) => {
+    setSelectedDay(day);
+  };
+
+  const generateDays = () => {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    return days.map((day) => (
+      <button
+        type="button"
+        key={day}
+        className={selectedDay === day ? "day selected" : "day"}
+        onClick={() => handleDaySelection(day)}
+        disabled={boxReserved}
+      >
+        {day}
+      </button>
+    ));
+  };
+
+  const handleReset = () => {
+    setReservations({});
+    setSelectedDay("");
+    setTime("");
+    setBoxReserved(false);
+    localStorage.removeItem("reservations");
+  };
+
+  const handleReservationRemoval = (reservation) => {
+    const newReservations = {
+      ...reservations,
+      [reservation.day]: {
+        ...reservations[reservation.day],
+        [reservation.time]: null,
+      },
+    };
+    localStorage.setItem("reservations", JSON.stringify(newReservations));
+    setReservations(newReservations);
+  };
+  return (
+    <div className="reservation-container">
+      <h1>Make a Reservation</h1>
+      <div className="reservation-form">
+        <div className="day-picker">
+          <h2>Choose a day:</h2>
+          {generateDays()}
+        </div>
+        <div className="time-picker">
+          <h2>Choose a time:</h2>
+          {generateTimeSlots()}
+        </div>
+        <form onSubmit={handleReservation}>
+          <label htmlFor="name">Name:</label>
+          <input
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={!selectedDay || !time}
+          />
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!selectedDay || !time}
+          />
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={!name || !email || boxReserved}
+          >
+            Make Reservation
+          </button>
+        </form>
+        {boxReserved && (
+          <div className="success-box">
+            <h2>Reservation confirmed!</h2>
+            <button className="reset-button" onClick={handleReset}>
+              Reset
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="reservation-list">
+        <h2>Current reservations:</h2>
+        {Object.entries(reservations).map(([day, times]) => (
+          <div key={day} className="reservation-day">
+            <h3>{day}</h3>
+            {Object.entries(times).map(([time, reservation]) => (
+              reservation && (
+                <div key={time} className="reservation">
+                  <p>{time}:</p>
+                  <p>Name: {reservation.name}</p>
+                  <p>Email: {reservation.email}</p>
+                  <button
+                    className="remove-button"
+                    onClick={() => handleReservationRemoval(reservation)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+export default Reserve;
+
+
+
+
+
+
+
+
+
+
+
+
+.boxes {
+  margin-top: 10%;
+}
+
+.boxes h1, .boxes h2, .boxes h3, .boxes h4 {
+  font-weight: bold;
+  text-align: center;
+  font-size: 25px;
+}
+
+.boxes h1 {
+  font-size: 35px;
+}
+
+.activeBox, .resetbutton, .boxes input, .days button, .time-slots button, .varaus {
+  display: inline-block;
+  outline: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 500px;
+  transition-duration: .3s;
+  border: 2px solid rgb(255, 102, 0);
+  letter-spacing: 2px;
+  min-width: 160px;
+  text-transform: uppercase;
+  white-space: normal;
+  font-weight: 700;
+  text-align: center;
+  padding: 16px 14px 18px;
+}
+
+.activeBox, .resetbutton {
+  color: #616467;
+  background-color: transparent;
+  position: relative;
+  margin-left: 4%;
+  margin-bottom: 2%;
+  cursor: text;
+}
+
+.activeBox:hover, .resetbutton:hover {
+  color: #fff;
+  background-color: rgb(232, 79, 79);
+}
+
+.boxes input {
+  color: #616467;
+  background-color: transparent;
+}
+
+.days button, .time-slots button {
+  color: rgb(255, 102, 0);
+  background-color: transparent;
+  height: 48px;
+  margin-top: 1%;
+  margin-right: 1%;
+}
+
+.days button:hover, .time-slots button:hover {
+  color: #fff;
+  background-color: rgb(232, 79, 79);
+}
+
+.box1 {
+  background-color: white;
+  justify-items: right;
+  border: 3px solid rgb(255, 102, 0);
+  margin: 3%;
+  height: 50%;
+  width: 70%;
+  margin-left: 14%;
+  position: relative;
+  opacity: 1;
+}
